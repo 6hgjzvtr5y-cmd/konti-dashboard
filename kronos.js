@@ -45,7 +45,7 @@
   // ---------- næste handelsdag ----------
   function renderNext() {
     var n = D.next, box = $("nextBox");
-    if (!n || !n.q) { box.innerHTML = '<div><div class="kl">Næste handelsdag</div><div class="kv">–</div><div class="ks">Intet aktuelt forecast endnu</div></div><div></div><div></div><div></div>'; return; }
+    if (!n || !n.q) { box.innerHTML = '<div><div class="kl">Næste handelsdag</div><div class="kv">–</div><div class="ks">Laves, når dagens lys er endeligt (Yahoo-volumen) – typisk næste morgen</div></div><div></div><div></div><div></div>'; return; }
     var q = n.q, ch = (q[4] - n.last_close) / n.last_close * 100, d = pd(n.d);
     box.innerHTML =
       '<div><div class="kl">Forecast · ' + cap(longD(d)) + '</div><div class="kv">' + num(q[4], 0) + '</div><div class="ks">P50 (median) · close</div></div>' +
