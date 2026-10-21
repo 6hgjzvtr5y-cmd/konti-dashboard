@@ -141,8 +141,14 @@
   }
 
   // ---------- tiles ----------
-  function renderTiles() {
-    var s = D.nb_stats || {}, n = +(s.trades || 0), w = +(s.wins || 0), l = +(s.losses || 0);
+  // ---------- handelsstatistik (2×2 pr. konto) ----------
+  var STAT_META = [
+    {label: "TRADINGVIEW · HANDELSSTATISTIK", key: "tv_stats", netLabel: "Netto P&amp;L", nosrc: "Ingen datakilde endnu", src: "(fra TradingView-journal)"},
+    {label: "NB v1.1 · LIQUID · HANDELSSTATISTIK", key: "nb_stats", netLabel: "Netto P&amp;L (NB)", nosrc: "Ingen datakilde endnu", src: "(fra NB v1.1 Journal)"}
+  ];
+  function statBlock(i) {
+    var meta = STAT_META[i], raw = D[meta.key], has = raw !== null && raw !== undefined, s = raw || {};
+    var n = +(s.trades || 0), w = +(s.wins || 0), l = +(s.losses || 0);
     var wr = n ? w / n * 100 : null, aw = s.avg_win, al = s.avg_loss, net = +(s.net || 0);
     var ratio = (aw && al) ? Math.abs(aw) / Math.abs(al) : null;
     var bar = function (a, b) { return a === null ? '<div class="bar"><span class="bn"></span></div>' :
@@ -153,11 +159,17 @@
       [ratio === null ? "–" : ratio.toFixed(2).replace(".", ","), "Gns. gevinst / Gns. tab",
         (ratio === null ? bar(null) : bar(Math.abs(aw) / (Math.abs(aw) + Math.abs(al)) * 100, Math.abs(al) / (Math.abs(aw) + Math.abs(al)) * 100)) +
         '<div class="sub">' + (ratio === null ? "– / –" : money(Math.abs(aw)) + " / " + money(-Math.abs(al))) + '</div>', ""],
-      [money(net, 2, true), "Netto P&amp;L (NB)", '<div class="sub">Sum af lukkede handler</div>', tone(net) === "flat" ? "" : tone(net)]
+      [money(net, 2, true), meta.netLabel, '<div class="sub">Sum af lukkede handler</div>', tone(net) === "flat" ? "" : tone(net)]
     ];
-    $("tiles").innerHTML = tiles.map(function (t) {
-      return '<div class="panel tile"><div class="tv ' + t[3] + '">' + t[0] + '</div><div class="tl">' + t[1] + '</div>' + t[2] + '</div>';
-    }).join("");
+    return '<div class="statcol"><div class="seclabel">' + meta.label + ' <span class="muted">' + (has ? meta.src : meta.nosrc) + '</span></div>' +
+      '<div class="tiles2">' + tiles.map(function (t) {
+        return '<div class="panel tile"><div class="tv ' + t[3] + '">' + t[0] + '</div><div class="tl">' + t[1] + '</div>' + t[2] + '</div>';
+      }).join("") + '</div></div>';
+  }
+  function renderTiles() {
+    var list = view === "both" ? [0, 1] : [+view], row = $("statRow");
+    row.className = "row statrow" + (list.length === 1 ? " single" : "");
+    row.innerHTML = list.map(statBlock).join("");
   }
 
   // ---------- calendar ----------
@@ -219,8 +231,7 @@
     row.innerHTML = list.map(function (i) { return calendar(accs[i], y, m); }).join("");
   }
 
-  function renderNbVis() { $("nbBlock").hidden = (view === "0"); }
-  function renderAll() { renderAccounts(); renderTiles(); renderNbVis(); renderCal(); }
+  function renderAll() { renderAccounts(); renderTiles(); renderCal(); }
 
   function init(data) {
     D = data; accs = data.accounts.map(derive); today = pd(data.today);
@@ -233,7 +244,7 @@
     $("prevM").onclick = function () { var i = months.findIndex(function (x) { return x[0] === curMonth[0] && x[1] === curMonth[1]; }); if (i > 0) { curMonth = months[i - 1]; renderCal(); } };
     $("nextM").onclick = function () { var i = months.findIndex(function (x) { return x[0] === curMonth[0] && x[1] === curMonth[1]; }); if (i < months.length - 1) { curMonth = months[i + 1]; renderCal(); } };
     $("acctToggle").querySelectorAll("button").forEach(function (b) {
-      b.onclick = function () { view = b.dataset.v; $("acctToggle").querySelectorAll("button").forEach(function (x) { x.classList.toggle("on", x === b); }); renderAccounts(); renderNbVis(); renderCal(); };
+      b.onclick = function () { view = b.dataset.v; $("acctToggle").querySelectorAll("button").forEach(function (x) { x.classList.toggle("on", x === b); }); renderAccounts(); renderTiles(); renderCal(); };
     });
     document.addEventListener("mouseover", function (e) { var c = e.target.closest && e.target.closest("[data-tip]"); if (!c) return; c.onmousemove = function (ev) { showTip(c.dataset.tip, ev.clientX, ev.clientY); }; c.onmouseleave = hideTip; });
     var rt; window.addEventListener("resize", function () { clearTimeout(rt); rt = setTimeout(renderAccounts, 120); });

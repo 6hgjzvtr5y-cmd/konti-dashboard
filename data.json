@@ -1,5 +1,5 @@
 {
- "updated": "21. oktober 2026 kl. 04:20",
+ "updated": "21. oktober 2026 kl. 09:16",
  "today": "2026-10-21",
  "accounts": [
   {
@@ -24,5 +24,6 @@
   "avg_win": null,
   "avg_loss": null,
   "net": 0
- }
+ },
+ "tv_stats": null
 }
