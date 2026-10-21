@@ -5,7 +5,8 @@
   var MSHORT = ["jan.","feb.","mar.","apr.","maj","jun.","jul.","aug.","sep.","okt.","nov.","dec."];
   var WDAY = ["søndag","mandag","tirsdag","onsdag","torsdag","fredag","lørdag"];
   var G = "#22C55E", R = "#EF4444";
-  var D, accs, view = "both", curMonth, months = [], today;
+  var D, accs, accsLiq, accsMnq, view = "both", curMonth, months = [], today;
+  var fee = "liquid", LIQ = -1, FEE_KEY = "konti.gebyr";
 
   // ---------- format ----------
   function num(x, dec) {
@@ -56,7 +57,7 @@
     var peak = start, mdd = 0;
     dates.forEach(function (k) { peak = Math.max(peak, eq[k]); mdd = Math.min(mdd, (eq[k] - peak) / peak * 100); });
     var mx = start; dates.forEach(function (k) { mx = Math.max(mx, eq[k]); });
-    return {name: a.name, start: start, eq: eq, dates: dates, cur: cur, pnl: cur - start, pnlPct: (cur - start) / start * 100, peak: mx, mdd: mdd};
+    return {name: a.name, label: a.label || a.name, start: start, eq: eq, dates: dates, cur: cur, pnl: cur - start, pnlPct: (cur - start) / start * 100, peak: mx, mdd: mdd};
   }
   function daily(a, k) {
     if (!(k in a.eq)) return null;
@@ -131,7 +132,7 @@
       hx.setAttribute("x1", px); hx.setAttribute("x2", px); hx.setAttribute("visibility", "visible");
       hp.setAttribute("cx", px); hp.setAttribute("cy", py); hp.setAttribute("visibility", "visible");
       var dp = daily(a, P.k), tot = P.v - a.start;
-      showTip('<b>' + esc(a.name) + '</b> · <span class="m">' + longD(P.d) + '</span><br>Equity: <b>' + money(P.v) + '</b><br>' +
+      showTip('<b>' + esc(a.label) + '</b> · <span class="m">' + longD(P.d) + '</span><br>Equity: <b>' + money(P.v) + '</b><br>' +
         'Siden start: <span class="' + tone(tot) + '">' + money(tot, 2, true) + ' (' + pct(tot / a.start * 100, true) + ')</span><br>' +
         'Dagens P&amp;L: <span class="' + tone(dp) + '">' + money(dp, 2, true) + '</span>', ev.clientX, ev.clientY);
     }
@@ -140,21 +141,65 @@
     hov.addEventListener("touchstart", function (e) { move(e.touches[0]); clearTimeout(window.__kt); window.__kt = setTimeout(leave, 2500); }, {passive: true});
   }
 
+  // ---------- gebyr-knap (kun Liquid) ----------
+  function bpTxt(x) { return String(+x).replace(".", ",") + " bp"; }
+  function mnqOk() { return !!(D && D.nb_stats_mnq && D.liquid_fee_adj && D.mnq); }
+  function feeNote() {
+    var m = D.mnq || {};
+    return '<b>MNQ-gebyrer (simuleret)</b><br>Hver handel = brutto-P&amp;L − ' + bpTxt(m.bp) + ' af handlens værdi pr. round trip.<br>' +
+      '<span class="m">IBKR MNQ: kommission $0,25 + CME $0,35 + NFA $0,02 pr. side<br>+ ca. 1 tick slippage ≈ ' + bpTxt(m.est_bp) + ' – ' + bpTxt(m.bp) + ' er sat konservativt.<br>' +
+      'Liquid-gebyrer = faktiske Liquid-tal (≈ 19 bp pr. round trip).</span>';
+  }
+  function feeSeg() {
+    var ok = mnqOk();
+    return '<div class="seg feeseg" role="group" aria-label="Gebyrer"' + (ok ? ' data-tip="' + esc(feeNote()) + '"' : '') + '>' +
+      '<button data-f="liquid" class="' + (fee === "liquid" ? "on" : "") + '">Liquid-gebyrer</button>' +
+      '<button data-f="mnq" class="' + (fee === "mnq" ? "on" : "") + '"' + (ok ? '' : ' disabled title="MNQ-data mangler (journal uden brutto/gebyr)"') + '>MNQ-gebyrer</button></div>';
+  }
+  function setFee(f, store) {
+    if (f !== "mnq" || !mnqOk()) f = "liquid";
+    fee = f; accs = f === "mnq" ? accsMnq : accsLiq;
+    if (store) { try { localStorage.setItem(FEE_KEY, f); } catch (e) { /* Safari privat / iframe uden storage */ } }
+    var n = document.getElementById("feeLegend");
+    if (n) { n.hidden = f !== "mnq" || view === "0"; n.innerHTML = f === "mnq" ? 'MNQ-gebyrer (Liquid-boksen): simuleret – brutto-P&amp;L fra NB-journalen minus ' + bpTxt(D.mnq.bp) + ' af handlens værdi pr. round trip (IBKR MNQ ≈ ' + bpTxt(D.mnq.est_bp) + ' inkl. kommission, CME/NFA-gebyrer og ~1 tick slippage; 1 bp er konservativt). Ikke faktiske Liquid-tal.' : ''; }
+  }
+  function bindFeeSeg(root) {
+    var sg = root.querySelector(".feeseg"); if (!sg) return;
+    sg.querySelectorAll("button").forEach(function (b) {
+      b.onclick = function () { if (b.disabled || b.dataset.f === fee) return; setFee(b.dataset.f, true); renderAll(); };
+    });
+    sg.addEventListener("touchstart", function (e) {
+      if (!sg.dataset.tip) return; var t = e.touches[0]; showTip(sg.dataset.tip, t.clientX, t.clientY);
+      clearTimeout(window.__kt); window.__kt = setTimeout(hideTip, 3500);
+    }, {passive: true});
+  }
+  function mnqAccount(a) {
+    // Liquid-equity + kumuleret (Liquid-gebyr − MNQ-gebyr) til og med hver dag
+    var adj = D.liquid_fee_adj || {}, days = Object.keys(adj).sort(), eq = {}, k;
+    for (k in a.equity) {
+      var c = 0; days.forEach(function (d) { if (d <= k) c += +adj[d]; });
+      eq[k] = +a.equity[k] + c;
+    }
+    return {name: a.name, label: a.name + " (MNQ-gebyrer, simuleret)", start: a.start, equity: eq};
+  }
+
   // ---------- account panels ----------
   function renderAccounts() {
     var row = $("acctRow"), list = view === "both" ? [0, 1] : [+view];
     row.className = "row" + (list.length === 1 ? " single" : "");
     row.innerHTML = list.map(function (i) {
-      var a = accs[i], t = tone(a.pnl);
+      var a = accs[i], t = tone(a.pnl), sim = i === LIQ && fee === "mnq";
       return '<div class="panel acct"><div class="phead"><div class="pname"><span class="dot ' + t + '"></span>' + esc(a.name) +
-        '<span class="badge">PAPER</span></div><div class="muted">Start ' + money(a.start) + '</div></div>' +
-        '<div class="big">' + money(a.cur) + '</div><div class="rowsb"><div class="muted">Balance</div>' +
+        '<span class="badge">PAPER</span></div>' + (i === LIQ ? feeSeg() : '') + '</div>' +
+        '<div class="big">' + money(a.cur) + '</div><div class="rowsb"><div class="muted">' + (sim ? 'Simuleret' : 'Balance') +
+        ' · start ' + money(a.start, 0) + '</div>' +
         '<div class="pill ' + t + '">' + arrow(a.pnl) + ' ' + money(a.pnl, 2, true) + ' · ' + pct(a.pnlPct, true) + '</div></div>' +
         '<div class="chart" data-i="' + i + '"></div><div class="mini">' +
         '<div><div class="mv">' + money(a.peak) + '</div><div class="ml">Højeste equity</div></div>' +
         '<div><div class="mv ' + (a.mdd < 0 ? "neg" : "") + '">' + (a.mdd < 0 ? pct(a.mdd, true) : "0,00 %") + '</div><div class="ml">Max drawdown</div></div>' +
         '<div><div class="mv">' + a.dates.length + '</div><div class="ml">Dage registreret</div></div></div></div>';
     }).join("");
+    bindFeeSeg(row);
     row.querySelectorAll(".chart").forEach(function (b) { drawChart(b, accs[+b.dataset.i], +b.dataset.i); });
   }
 
@@ -162,10 +207,11 @@
   // ---------- handelsstatistik (2×2 pr. konto) ----------
   var STAT_META = [
     {label: "TRADINGVIEW · HANDELSSTATISTIK", key: "tv_stats", netLabel: "Netto P&amp;L", nosrc: "Ingen datakilde endnu", src: "(fra TradingView-journal)"},
-    {label: "NB v1.1 · LIQUID · HANDELSSTATISTIK", key: "nb_stats", netLabel: "Netto P&amp;L (NB)", nosrc: "Ingen datakilde endnu", src: "(fra NB v1.1 Journal)"}
+    {label: "NB v1.1 · LIQUID · HANDELSSTATISTIK", key: "nb_stats", netLabel: "Netto P&amp;L (NB)", nosrc: "Ingen datakilde endnu", src: "(fra NB v1.1 Journal)"},
+    {label: "NB v1.1 · LIQUID · HANDELSSTATISTIK", key: "nb_stats_mnq", netLabel: "Netto P&amp;L (NB, MNQ)", nosrc: "Ingen datakilde endnu", src: "(simuleret med MNQ-gebyrer)"}
   ];
   function statBlock(i) {
-    var meta = STAT_META[i], raw = D[meta.key], has = raw !== null && raw !== undefined, s = raw || {};
+    var meta = STAT_META[i === 1 && fee === "mnq" ? 2 : i], raw = D[meta.key], has = raw !== null && raw !== undefined, s = raw || {};
     var n = +(s.trades || 0), w = +(s.wins || 0), l = +(s.losses || 0);
     var wr = n ? w / n * 100 : null, aw = s.avg_win, al = s.avg_loss, net = +(s.net || 0);
     var ratio = (aw && al) ? Math.abs(aw) / Math.abs(al) : null;
@@ -177,7 +223,7 @@
       [ratio === null ? "–" : ratio.toFixed(2).replace(".", ","), "Gns. gevinst / Gns. tab",
         (ratio === null ? bar(null) : bar(Math.abs(aw) / (Math.abs(aw) + Math.abs(al)) * 100, Math.abs(al) / (Math.abs(aw) + Math.abs(al)) * 100)) +
         '<div class="sub">' + (ratio === null ? "– / –" : money(Math.abs(aw)) + " / " + money(-Math.abs(al))) + '</div>', ""],
-      [money(net, 2, true), meta.netLabel, '<div class="sub">Sum af lukkede handler</div>', tone(net) === "flat" ? "" : tone(net)]
+      [money(net, 2, true), meta.netLabel, '<div class="sub">' + (s.gross !== undefined && s.fees !== undefined ? 'Brutto ' + money(+s.gross, 2, true) + ' · gebyr ' + money(-Math.abs(+s.fees), 2, true) : 'Sum af lukkede handler') + '</div>', tone(net) === "flat" ? "" : tone(net)]
     ];
     return '<div class="statcol"><div class="seclabel">' + meta.label + ' <span class="muted">' + (has ? meta.src : meta.nosrc) + '</span></div>' +
       '<div class="tiles2">' + tiles.map(function (t) {
@@ -220,11 +266,11 @@
         }
         var cs = cellStyle(v, a.start), p = v / a.start * 100;
         wsum += v; wn++; mtot += v; mdays++;
-        var tipH = '<b>' + longD(day) + '</b> · <span class="m">' + esc(a.name) + '</span><br>Dagens P&amp;L: <span class="' + tone(v) + '">' + money(v, 2, true) + ' (' + pct(p, true) + ')</span><br>Equity ved luk: <b>' + money(a.eq[k]) + '</b><br><span class="m">Siden start: ' + money(a.eq[k] - a.start, 2, true) + '</span>';
+        var tipH = '<b>' + longD(day) + '</b> · <span class="m">' + esc(a.label) + '</span><br>Dagens P&amp;L: <span class="' + tone(v) + '">' + money(v, 2, true) + ' (' + pct(p, true) + ')</span><br>Equity ved luk: <b>' + money(a.eq[k]) + '</b><br><span class="m">Siden start: ' + money(a.eq[k] - a.start, 2, true) + '</span>';
         c += '<div class="cell ' + cs[0] + '" ' + cs[1] + ' data-tip="' + esc(tipH) + '"><span class="d">' + day.getDate() + '</span><div class="cv">' + money(v, Math.abs(v) >= 1000 ? 0 : 2, true).replace("$", "") + '</div><div class="cp">' + pct(p, true) + '</div></div>';
       }
       if (wn) {
-        var wt = '<b>Uge ' + isoWeek(wk) + '</b> · <span class="m">' + esc(a.name) + '</span><br>Uge-P&amp;L: <span class="' + tone(wsum) + '">' + money(wsum, 2, true) + ' (' + pct(wsum / a.start * 100, true) + ')</span><br><span class="m">' + wn + ' handelsdag' + (wn > 1 ? "e" : "") + ' registreret</span>';
+        var wt = '<b>Uge ' + isoWeek(wk) + '</b> · <span class="m">' + esc(a.label) + '</span><br>Uge-P&amp;L: <span class="' + tone(wsum) + '">' + money(wsum, 2, true) + ' (' + pct(wsum / a.start * 100, true) + ')</span><br><span class="m">' + wn + ' handelsdag' + (wn > 1 ? "e" : "") + ' registreret</span>';
         c += '<div class="cell tot ' + tone(wsum) + '" data-tip="' + esc(wt) + '"><div class="cv">' + money(wsum, Math.abs(wsum) >= 1000 ? 0 : 2, true) + '</div><div class="cp">' + pct(wsum / a.start * 100, true) + '</div></div>';
       } else c += '<div class="cell tot"><div class="cv dim">–</div></div>';
       rows += c;
@@ -232,7 +278,7 @@
     for (var e = weeks.length; e < 5; e++) rows += '<div class="cell out"></div>'.repeat(5) + '<div class="cell tot" style="opacity:.35"></div>';
     var head = ["Man", "Tir", "Ons", "Tor", "Fre", "Uge total"].map(function (x) { return '<div class="ch">' + x + '</div>'; }).join("");
     var t = tone(mtot);
-    return '<div class="panel cal"><div class="phead"><div><div class="ctitle">' + cap(MONTHS[m]) + ' ' + y + '</div><div class="muted">' + esc(a.name) + ' · daglig P&amp;L</div></div>' +
+    return '<div class="panel cal"><div class="phead"><div><div class="ctitle">' + cap(MONTHS[m]) + ' ' + y + '</div><div class="muted">' + esc(a.name) + (a.label !== a.name ? ' · MNQ-gebyrer (sim.)' : ' · daglig P&amp;L') + '</div></div>' +
       '<div class="chips"><div><div class="chv">' + mdays + '</div><div class="chl">Dage</div></div><div><div class="chv ' + (t === "flat" ? "" : t) + '">' + money(mtot, 2, true) + '</div><div class="chl">Måned</div></div>' +
       '<div><div class="chv ' + (t === "flat" ? "" : t) + '">' + pct(mtot / a.start * 100, true) + '</div><div class="chl">Procent</div></div></div></div>' +
       '<div class="grid">' + head + rows + '</div></div>';
@@ -252,10 +298,12 @@
   renderAccounts = safe("konto-paneler", renderAccounts);
   renderTiles = safe("handelsstatistik", renderTiles);
   renderCal = safe("kalender", renderCal);
-  function renderAll() { renderAccounts(); renderTiles(); renderCal(); }
+  function renderAll() { setFee(fee, false); renderAccounts(); renderTiles(); renderCal(); }
 
   function init(data) {
-    D = data; accs = data.accounts.map(derive); today = pd(data.today);
+    D = data; accsLiq = data.accounts.map(derive); accs = accsLiq; today = pd(data.today);
+    LIQ = data.accounts.findIndex(function (a) { return a.name === "Liquid"; });
+    accsMnq = data.accounts.map(function (a, i) { return i === LIQ && mnqOk() ? derive(mnqAccount(a)) : accsLiq[i]; });
     $("updated").textContent = "Opdateret " + data.updated + " (dansk tid)";
     // måneder: fra første registrering til i dag
     var all = []; accs.forEach(function (a) { all = all.concat(a.dates); }); all.sort();
@@ -265,7 +313,7 @@
     $("prevM").onclick = function () { var i = months.findIndex(function (x) { return x[0] === curMonth[0] && x[1] === curMonth[1]; }); if (i > 0) { curMonth = months[i - 1]; renderCal(); } };
     $("nextM").onclick = function () { var i = months.findIndex(function (x) { return x[0] === curMonth[0] && x[1] === curMonth[1]; }); if (i < months.length - 1) { curMonth = months[i + 1]; renderCal(); } };
     $("acctToggle").querySelectorAll("button").forEach(function (b) {
-      b.onclick = function () { view = b.dataset.v; $("acctToggle").querySelectorAll("button").forEach(function (x) { x.classList.toggle("on", x === b); }); renderAccounts(); renderTiles(); renderCal(); };
+      b.onclick = function () { view = b.dataset.v; $("acctToggle").querySelectorAll("button").forEach(function (x) { x.classList.toggle("on", x === b); }); renderAll(); };
     });
     document.addEventListener("mouseover", function (e) { var c = e.target.closest && e.target.closest("[data-tip]"); if (!c) return; c.onmousemove = function (ev) { showTip(c.dataset.tip, ev.clientX, ev.clientY); }; c.onmouseleave = hideTip; });
     var rt; window.addEventListener("resize", function () { clearTimeout(rt); rt = setTimeout(renderAccounts, 120); });
@@ -273,6 +321,8 @@
     var q = new URLSearchParams(location.search);
     if (q.get("konto")) { var b = $("acctToggle").querySelector('[data-v="' + q.get("konto") + '"]'); if (b) b.click(); }
     if (q.get("maaned")) { var mm = q.get("maaned").split("-"), f = months.find(function (x) { return x[0] === +mm[0] && x[1] === +mm[1] - 1; }); if (f) curMonth = f; }
+    var f0 = q.get("gebyr"); if (!f0) { try { f0 = localStorage.getItem(FEE_KEY); } catch (e) { f0 = null; } }
+    setFee(f0 === "mnq" ? "mnq" : "liquid", false);
     renderAll();
   }
 
