@@ -28,7 +28,25 @@
   function shortD(d) { return d.getDate() + ". " + MSHORT[d.getMonth()]; }
   function longD(d) { return WDAY[d.getDay()] + " " + d.getDate() + ". " + MONTHS[d.getMonth()] + " " + d.getFullYear(); }
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return {"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]; }); }
-  function $(id) { return document.getElementById(id); }
+  function $(id) {
+    var e = document.getElementById(id);
+    if (!e) { console.warn("Konti-dashboard: element #" + id + " mangler (blandet cache-version?)"); e = document.createElement("div"); }
+    return e;
+  }
+  // render-fejl må aldrig vælte hele siden: log + lille note nederst
+  function safe(name, fn) {
+    return function () {
+      try { return fn.apply(this, arguments); }
+      catch (err) {
+        console.error("Konti-dashboard: fejl i " + name, err);
+        if (!document.getElementById("renderNote")) {
+          var n = document.createElement("div"); n.id = "renderNote"; n.className = "rnote";
+          n.textContent = "En del af siden kunne ikke vises. Genindlæs siden.";
+          document.body.appendChild(n);
+        }
+      }
+    };
+  }
 
   // ---------- data ----------
   function derive(a) {
@@ -119,7 +137,7 @@
     }
     function leave() { hx.setAttribute("visibility", "hidden"); hp.setAttribute("visibility", "hidden"); hideTip(); }
     hov.addEventListener("mousemove", move); hov.addEventListener("mouseleave", leave);
-    hov.addEventListener("touchstart", function (e) { move(e.touches[0]); }, {passive: true});
+    hov.addEventListener("touchstart", function (e) { move(e.touches[0]); clearTimeout(window.__kt); window.__kt = setTimeout(leave, 2500); }, {passive: true});
   }
 
   // ---------- account panels ----------
@@ -231,6 +249,9 @@
     row.innerHTML = list.map(function (i) { return calendar(accs[i], y, m); }).join("");
   }
 
+  renderAccounts = safe("konto-paneler", renderAccounts);
+  renderTiles = safe("handelsstatistik", renderTiles);
+  renderCal = safe("kalender", renderCal);
   function renderAll() { renderAccounts(); renderTiles(); renderCal(); }
 
   function init(data) {
@@ -256,8 +277,19 @@
   }
 
   tip = $("tip");
+  window.addEventListener("scroll", function () { if (tip) tip.hidden = true; }, {passive: true});
   fetch("data.json?t=" + Date.now(), {cache: "no-store"})
     .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
-    .then(init)
-    .catch(function (e) { document.body.insertAdjacentHTML("afterbegin", '<div class="err">Kunne ikke indlæse data.json (' + esc(e.message) + ')</div>'); });
+    .then(function (data) {
+      if (!data || !Array.isArray(data.accounts)) throw new Error("ugyldigt indhold");
+      return data;
+    }, function (e) { throw e; })
+    .then(function (data) {
+      try { init(data); }
+      catch (err) { console.error("Konti-dashboard: init-fejl", err); safe("init", function () { throw err; })(); }
+    })
+    .catch(function (e) {
+      console.error("Konti-dashboard: data.json", e);
+      document.body.insertAdjacentHTML("afterbegin", '<div class="err">Kunne ikke indlæse data.json (' + esc(e.message) + ')</div>');
+    });
 })();
