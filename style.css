@@ -103,3 +103,29 @@ h1{font-size:22px;font-weight:700;letter-spacing:-.2px}
   .cell{height:60px}.cv{font-size:12.5px}.cp{font-size:10.5px}
 }
 @media (max-width:380px){.cv{font-size:11px}.cp{display:none}.chips>div{padding:0 6px}}
+/* sidefaner (Konti | Kronos) – samme højde som den tidligere kicker */
+.tabs{display:flex;gap:14px;margin-bottom:4px;font-size:11px;letter-spacing:1.4px;font-weight:600;text-transform:uppercase;line-height:15px}
+.tabs a{color:var(--dim);text-decoration:none;border-bottom:1px solid transparent}
+.tabs a.on{color:var(--g);border-bottom-color:rgba(34,197,94,.5)}
+.tabs a:not(.on):hover{color:var(--txt)}
+/* exit-varianter (egen boks under Liquid-kolonnen) */
+.row[hidden]{display:none}
+.xrow{margin-top:14px}
+.xbox{display:flex;flex-direction:column}
+.xph{display:flex;flex-direction:column;justify-content:center;align-items:center;gap:4px;text-align:center;opacity:.55;border-style:dashed}
+.xph .ctitle{font-size:14px;color:var(--mut)}
+.xdate{min-width:64px;text-align:center}
+.xlist{margin-top:12px;display:flex;flex-direction:column;gap:4px}
+.xr{display:grid;grid-template-columns:18px minmax(0,1.25fr) minmax(0,1fr) 64px;align-items:center;gap:10px;padding:6px 8px;border-radius:8px;border:1px solid transparent;font-size:12.5px}
+.xr:hover{background:#141C26}
+.xr.now{background:rgba(34,197,94,.06);border-color:rgba(34,197,94,.30)}
+.xl{font-weight:700;color:var(--mut);text-align:center}.xr.now .xl{color:var(--gl)}
+.xn{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#C3CAD4}
+.xn .badge{font-size:9px;padding:1px 5px;margin-left:4px}
+.xb{height:8px;background:#151D27;border-radius:4px;overflow:hidden;display:flex;justify-content:flex-end}
+.xb i{display:block;height:100%;border-radius:4px}
+.xv{text-align:right;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.xfoot{margin-top:auto;padding-top:10px;font-size:11.5px}
+.xempty{padding:24px 4px 8px;font-size:12.5px}
+.cell.hasx{cursor:pointer}
+@media (max-width:640px){.xph{display:none}.xr{grid-template-columns:16px minmax(0,1.4fr) minmax(0,.8fr) 58px;gap:8px;padding:6px}}

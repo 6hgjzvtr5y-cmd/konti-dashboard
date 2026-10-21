@@ -267,7 +267,9 @@
         var cs = cellStyle(v, a.start), p = v / a.start * 100;
         wsum += v; wn++; mtot += v; mdays++;
         var tipH = '<b>' + longD(day) + '</b> · <span class="m">' + esc(a.label) + '</span><br>Dagens P&amp;L: <span class="' + tone(v) + '">' + money(v, 2, true) + ' (' + pct(p, true) + ')</span><br>Equity ved luk: <b>' + money(a.eq[k]) + '</b><br><span class="m">Siden start: ' + money(a.eq[k] - a.start, 2, true) + '</span>';
-        c += '<div class="cell ' + cs[0] + '" ' + cs[1] + ' data-tip="' + esc(tipH) + '"><span class="d">' + day.getDate() + '</span><div class="cv">' + money(v, Math.abs(v) >= 1000 ? 0 : 2, true).replace("$", "") + '</div><div class="cp">' + pct(p, true) + '</div></div>';
+        var hx = a.name === "Liquid" && XV && XV.days && XV.days[k];
+        if (hx) tipH += '<br><span class="m">Tryk: se exit-varianter</span>';
+        c += '<div class="cell ' + cs[0] + (hx ? ' hasx" data-x="' + k : '') + '" ' + cs[1] + ' data-tip="' + esc(tipH) + '"><span class="d">' + day.getDate() + '</span><div class="cv">' + money(v, Math.abs(v) >= 1000 ? 0 : 2, true).replace("$", "") + '</div><div class="cp">' + pct(p, true) + '</div></div>';
       }
       if (wn) {
         var wt = '<b>Uge ' + isoWeek(wk) + '</b> · <span class="m">' + esc(a.label) + '</span><br>Uge-P&amp;L: <span class="' + tone(wsum) + '">' + money(wsum, 2, true) + ' (' + pct(wsum / a.start * 100, true) + ')</span><br><span class="m">' + wn + ' handelsdag' + (wn > 1 ? "e" : "") + ' registreret</span>';
@@ -295,10 +297,50 @@
     row.innerHTML = list.map(function (i) { return calendar(accs[i], y, m); }).join("");
   }
 
+
+  // ---------- exit-varianter (NB tabsdage, egen boks under Liquid-kolonnen) ----------
+  var XV = null, xSel = null, XORD = "ABCDEFGHI";
+  var XLAB = {A: "max(UB, VWAP) ½ t", B: "Kun VWAP", C: "Kun UB", D: "min(UB, VWAP)", E: "Kun stop + luk", F: "2 tjek i træk", G: "Hele timer", H: "Modsat grænse", I: "Spring 1. tjek"};
+  function xDays() { return XV && XV.days ? Object.keys(XV.days).sort() : []; }
+  function exitBox() {
+    var ds = xDays(), k = xSel && XV.days[xSel] ? xSel : ds[ds.length - 1], useM = fee === "mnq";
+    var head = '<div class="phead"><div><div class="ctitle">Exit-varianter</div><div class="muted">NB v1.1 · tabsdage · ' + (useM ? 'MNQ-gebyrer (sim.)' : 'Liquid-gebyrer') + '</div></div>';
+    if (!k) return '<div class="panel cal xbox">' + head + '</div><div class="xempty muted">Ingen tabsdage for NB endnu – her vises, hvad exit-reglerne A–I ville have givet på dage med tab.</div></div>';
+    var i = ds.indexOf(k), day = XV.days[k], V = day.variants;
+    head += '<div class="mnav"><button class="xprev" aria-label="Forrige tabsdag"' + (i <= 0 ? ' disabled' : '') + '>‹</button><span class="xdate">' + shortD(pd(k)) + '</span><button class="xnext" aria-label="Næste tabsdag"' + (i >= ds.length - 1 ? ' disabled' : '') + '>›</button></div></div>';
+    var vals = XORD.split("").map(function (v) { var r = V[v] && (useM ? V[v].mnq : V[v].liquid); return r ? +r.net : 0; });
+    var mx = Math.max.apply(null, vals.map(Math.abs).concat([1])), a0 = vals[0];
+    var rows = XORD.split("").map(function (v, j) {
+      var r = V[v]; if (!r) return "";
+      var x = useM ? r.mnq : r.liquid, n = +x.net, w = Math.abs(n) / mx * 100, t = tone(n), d = n - a0;
+      var tr = (r.trades || []).map(function (q) { return q.in + '→' + q.out + ' ' + q.how + ' ' + money(q.net, 0, true); }).join('<br>');
+      var tipH = '<b>' + v + ' · ' + esc(r.label) + '</b> · <span class="m">' + longD(pd(k)) + '</span><br>Dagens netto: <span class="' + t + '">' + money(n, 2, true) + ' (' + pct(+x.pct, true) + ')</span>' +
+        (v !== "A" ? '<br>Vs. nu (A): <span class="' + tone(d) + '">' + money(d, 2, true) + '</span>' : '') + '<br><span class="m">' + r.n + ' handel' + (r.n === 1 ? '' : 'er') + (useM ? ' · handler vist m. Liquid-gebyr' : '') + (tr ? '<br>' + tr : '') + '</span>';
+      return '<div class="xr' + (v === "A" ? ' now' : '') + '" data-tip="' + esc(tipH) + '"><span class="xl">' + v + '</span><span class="xn">' + esc(XLAB[v] || r.label) + (v === "A" ? ' <span class="badge">NU</span>' : '') + '</span>' +
+        '<span class="xb"><i class="' + (n < 0 ? 'br' : 'bg') + '" style="width:' + Math.max(w, 1.5).toFixed(1) + '%"></i></span><span class="xv ' + t + '">' + money(n, 0, true) + '</span></div>';
+    }).join("");
+    var best = XORD.split("").reduce(function (b, v, j) { return vals[j] > vals[b] ? j : b; }, 0);
+    var foot = best === 0 ? 'Nuværende regel (A) var bedst denne dag.' : 'Bedst: ' + XORD[best] + ' (' + money(vals[best] - a0, 0, true) + ' vs. A). Én dag siger ikke meget – se backtestet.';
+    return '<div class="panel cal xbox">' + head + '<div class="xlist">' + rows + '</div><div class="xfoot muted">' + foot + ' Replay af dagens kurs' + (day.mode === "live" ? ' (live-tjek fra NB Signal)' : '') + '.</div></div>';
+  }
+  function renderExit() {
+    var row = $("exitRow");
+    if (view === "0" || LIQ < 0) { row.hidden = true; row.innerHTML = ""; return; }
+    row.hidden = false;
+    var both = view === "both";
+    row.className = "row xrow" + (both ? "" : " single");
+    row.innerHTML = (both ? '<div class="panel cal xph"><div class="ctitle">Exit-varianter</div><div class="muted">Kun for NB v1.1 (Liquid)</div></div>' : '') + exitBox();
+    var ds = xDays(), cur = xSel && XV.days[xSel] ? xSel : ds[ds.length - 1], i = ds.indexOf(cur);
+    var p = row.querySelector(".xprev"), n = row.querySelector(".xnext");
+    if (p) p.onclick = function () { if (i > 0) { xSel = ds[i - 1]; renderExit(); } };
+    if (n) n.onclick = function () { if (i < ds.length - 1) { xSel = ds[i + 1]; renderExit(); } };
+  }
+
   renderAccounts = safe("konto-paneler", renderAccounts);
+  renderExit = safe("exit-varianter", renderExit);
   renderTiles = safe("handelsstatistik", renderTiles);
   renderCal = safe("kalender", renderCal);
-  function renderAll() { setFee(fee, false); renderAccounts(); renderTiles(); renderCal(); }
+  function renderAll() { setFee(fee, false); renderAccounts(); renderTiles(); renderCal(); renderExit(); }
 
   function init(data) {
     D = data; accsLiq = data.accounts.map(derive); accs = accsLiq; today = pd(data.today);
@@ -316,6 +358,10 @@
       b.onclick = function () { view = b.dataset.v; $("acctToggle").querySelectorAll("button").forEach(function (x) { x.classList.toggle("on", x === b); }); renderAll(); };
     });
     document.addEventListener("mouseover", function (e) { var c = e.target.closest && e.target.closest("[data-tip]"); if (!c) return; c.onmousemove = function (ev) { showTip(c.dataset.tip, ev.clientX, ev.clientY); }; c.onmouseleave = hideTip; });
+    document.addEventListener("click", function (e) {
+      var c = e.target.closest && e.target.closest(".cell.hasx"); if (!c) return;
+      xSel = c.dataset.x; renderExit(); var r = document.getElementById("exitRow"); if (r && r.scrollIntoView) r.scrollIntoView({behavior: "smooth", block: "nearest"});
+    });
     var rt; window.addEventListener("resize", function () { clearTimeout(rt); rt = setTimeout(renderAccounts, 120); });
     // valgfri start-parametre: ?konto=0|1|both&maaned=YYYY-MM
     var q = new URLSearchParams(location.search);
@@ -334,6 +380,12 @@
       if (!data || !Array.isArray(data.accounts)) throw new Error("ugyldigt indhold");
       return data;
     }, function (e) { throw e; })
+    .then(function (data) {
+      return fetch("exit_varianter.json?t=" + Date.now(), {cache: "no-store"})
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (x) { XV = x && x.days ? x : null; }, function () { XV = null; })
+        .then(function () { return data; });
+    })
     .then(function (data) {
       try { init(data); }
       catch (err) { console.error("Konti-dashboard: init-fejl", err); safe("init", function () { throw err; })(); }
