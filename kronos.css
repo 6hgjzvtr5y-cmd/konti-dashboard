@@ -1,0 +1,35 @@
+/* Kronos-side – bygger på style.css */
+.knext{padding:16px 20px;display:grid;grid-template-columns:1.2fr 1fr 1fr 1fr;gap:0;align-items:center}
+.knext>div{min-width:0}
+.knext>div+div{border-left:1px solid var(--grid);padding-left:18px}
+.knext .kl{font-size:12px;color:var(--mut)}
+.knext .kv{font-size:22px;font-weight:800;letter-spacing:-.4px;font-variant-numeric:tabular-nums;white-space:nowrap;margin-top:3px}
+.knext .ks{font-size:12px;color:var(--dim);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kchartp{padding:16px 18px 12px}
+.kchart{height:300px;position:relative}
+.kchart svg{display:block;width:100%;height:100%;overflow:visible}
+.kchart .empty,.klist .empty{padding:100px 0;text-align:center}
+.krow{margin-top:20px}
+.krow .tiles2{height:340px}
+.klist{height:340px;overflow:auto;-webkit-overflow-scrolling:touch;padding:4px 0}
+.ktab{width:100%;border-collapse:collapse;font-size:12px;font-variant-numeric:tabular-nums}
+.ktab th{position:sticky;top:0;background:var(--panel);color:var(--mut);font-weight:600;font-size:11.5px;text-align:right;padding:8px 9px;border-bottom:1px solid var(--grid);white-space:nowrap}
+.ktab td{text-align:right;padding:7px 9px;border-bottom:1px solid #18202A;white-space:nowrap}
+.ktab th:first-child,.ktab td:first-child{text-align:left}
+.ktab tr:last-child td{border-bottom:0}
+.ktab tbody tr:hover td{background:#141C26}
+.ok{color:var(--gl)}.no{color:var(--rl)}.na{color:var(--dim)}
+.lg-band{background:rgba(34,197,94,.16);border:1px solid rgba(34,197,94,.35)}
+.lg-med{background:transparent;border-top:2px dashed var(--gl)!important;border:0;height:0!important;width:14px!important;vertical-align:3px!important}
+.lg-act{background:#E6EAF0;height:2px!important;width:14px!important;vertical-align:3px!important;border-radius:1px!important}
+.lg-hit{background:var(--g);border-radius:50%!important}.lg-miss{background:var(--r);border-radius:50%!important}
+@media (max-width:640px){
+  .knext{grid-template-columns:1fr 1fr;row-gap:14px;padding:14px 16px}
+  .knext>div:nth-child(3){border-left:0;padding-left:0}
+  .kchart{height:240px}
+  .krow{gap:20px}
+  .krow .tiles2{height:auto}
+  .klist{height:360px}
+  .ktab th,.ktab td{padding:7px 8px}
+  .ktab .hm{display:none}
+}

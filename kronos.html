@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<link rel="icon" href="data:,">
+<title>Kronos – NASDAQ100</title>
+<link rel="stylesheet" href="style.css?v=d1cf4f40fc">
+<link rel="stylesheet" href="kronos.css?v=6c85f80a16">
+</head>
+<body>
+<header class="top">
+  <div>
+    <nav class="tabs" aria-label="Sider"><a href="index.html">Konti</a><a href="kronos.html" class="on" aria-current="page">Kronos NASDAQ100</a></nav>
+    <h1>Kronos-forecast</h1>
+  </div>
+  <div class="top-r">
+    <div class="muted" id="kModel">Kronos-small · dagslys · P10–P90</div>
+    <div class="muted" id="updated">Indlæser…</div>
+  </div>
+</header>
+
+<section class="row single"><div class="panel knext" id="nextBox"></div></section>
+
+<div class="calbar">
+  <div class="seclabel" id="mLabel">MÅNED</div>
+  <div class="mnav">
+    <button id="prevM" aria-label="Forrige måned">‹</button>
+    <span id="mName">–</span>
+    <button id="nextM" aria-label="Næste måned">›</button>
+  </div>
+</div>
+
+<section class="row single"><div class="panel kchartp" id="chartBox"><div class="kchart"></div></div></section>
+
+<section class="row krow" id="kRow">
+  <div class="statcol"><div class="seclabel">MÅNEDENS PRÆCISION</div><div class="tiles2" id="kTiles"></div></div>
+  <div class="statcol"><div class="seclabel">DAG FOR DAG</div><div class="panel klist" id="kList"></div></div>
+</section>
+
+<div class="legend">
+  <span><i class="lg-band"></i>P10–P90-bånd</span>
+  <span><i class="lg-med"></i>P50 (median)</span>
+  <span><i class="lg-act"></i>Faktisk close</span>
+  <span><i class="lg-hit"></i>Retning ramt</span>
+  <span><i class="lg-miss"></i>Retning forkert</span>
+  <span class="full" id="kMethod"></span>
+</div>
+
+<div id="tip" class="tip" hidden></div>
+<script src="kronos.js?v=9f001e9109"></script>
+</body>
+</html>
