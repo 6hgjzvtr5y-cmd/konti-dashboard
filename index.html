@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="da">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<link rel="icon" href="data:,">
+<title>Konti – Paper Trading</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <div><div class="kicker">PAPER TRADING</div><h1>Konti-oversigt</h1></div>
+  <div class="top-r">
+    <div class="seg" id="acctToggle" role="tablist" aria-label="Vælg konto">
+      <button data-v="both" class="on">Begge</button><button data-v="0">TradingView</button><button data-v="1">Liquid</button>
+    </div>
+    <div class="muted" id="updated">Indlæser…</div>
+  </div>
+</header>
+
+<section class="row" id="acctRow"></section>
+
+<div id="nbBlock">
+<div class="seclabel">NB v1.1 · LIQUID · HANDELSSTATISTIK <span class="muted">(fra NB v1.1 Journal)</span></div>
+<section class="tiles" id="tiles"></section>
+</div>
+
+<div class="calbar">
+  <div class="seclabel" id="calLabel">MÅNEDSKALENDER</div>
+  <div class="mnav">
+    <button id="prevM" aria-label="Forrige måned">‹</button>
+    <span id="mName">–</span>
+    <button id="nextM" aria-label="Næste måned">›</button>
+  </div>
+</div>
+<section class="row" id="calRow"></section>
+
+<div class="legend">
+  <span><i class="lg-up"></i>Gevinst (mørkere = større)</span>
+  <span><i class="lg-dn"></i>Tab</span>
+  <span><i class="lg-zero"></i>0 / uændret</span>
+  <span><i class="lg-pre"></i>Før sporing / fremtid / ingen data</span>
+  <span class="full">Daglig P&amp;L = ændring i equity fra forrige registrerede dag · Kilde: Konto-historik · Alle tider i dansk tid</span>
+</div>
+
+<div id="tip" class="tip" hidden></div>
+<script src="app.js"></script>
+</body>
+</html>
