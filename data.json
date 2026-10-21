@@ -23,13 +23,29 @@
   "losses": 3,
   "avg_win": null,
   "avg_loss": -106.93333333333334,
-  "net": -320.8
+  "net": -320.8,
+  "gross": -95.2,
+  "fees": 225.6
  },
  "tv_stats": null,
- "nb_stats_mnq": null,
- "liquid_fee_adj": null,
+ "nb_stats_mnq": {
+  "trades": 3,
+  "wins": 0,
+  "losses": 3,
+  "avg_win": null,
+  "avg_loss": -35.6929,
+  "net": -107.0787,
+  "gross": -95.2,
+  "fees": 11.8787
+ },
+ "liquid_fee_adj": {
+  "2026-10-21": 213.7213
+ },
  "mnq": {
   "bp": 1.0,
-  "est_bp": 0.4
+  "est_bp": 0.4,
+  "liquid_fees": 225.6,
+  "mnq_fees": 11.88,
+  "gross": -95.2
  }
 }
