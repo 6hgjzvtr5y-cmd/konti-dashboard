@@ -116,7 +116,7 @@ h1{font-size:22px;font-weight:700;letter-spacing:-.2px}
 .xph .ctitle{font-size:14px;color:var(--mut)}
 .xdate{min-width:64px;text-align:center}
 .xlist{margin-top:12px;display:flex;flex-direction:column;gap:4px}
-.xr{display:grid;grid-template-columns:18px minmax(0,1.25fr) minmax(0,1fr) 64px;align-items:center;gap:10px;padding:6px 8px;border-radius:8px;border:1px solid transparent;font-size:12.5px}
+.xr{display:grid;grid-template-columns:18px minmax(0,1.45fr) minmax(0,1fr) 60px;align-items:center;gap:10px;padding:6px 8px;border-radius:8px;border:1px solid transparent;font-size:12.5px}
 .xr:hover{background:#141C26}
 .xr.now{background:rgba(34,197,94,.06);border-color:rgba(34,197,94,.30)}
 .xl{font-weight:700;color:var(--mut);text-align:center}.xr.now .xl{color:var(--gl)}

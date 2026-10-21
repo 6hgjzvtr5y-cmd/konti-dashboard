@@ -300,11 +300,11 @@
 
   // ---------- exit-varianter (NB tabsdage, egen boks under Liquid-kolonnen) ----------
   var XV = null, xSel = null, XORD = "ABCDEFGHI";
-  var XLAB = {A: "max(UB, VWAP) ½ t", B: "Kun VWAP", C: "Kun UB", D: "min(UB, VWAP)", E: "Kun stop + luk", F: "2 tjek i træk", G: "Hele timer", H: "Modsat grænse", I: "Spring 1. tjek"};
+  var XLAB = {A: "max(UB, VWAP)", B: "Kun VWAP", C: "Kun UB", D: "min(UB, VWAP)", E: "Kun stop + luk", F: "2 tjek i træk", G: "Hele timer", H: "Modsat grænse", I: "Spring 1. tjek"};
   function xDays() { return XV && XV.days ? Object.keys(XV.days).sort() : []; }
   function exitBox() {
     var ds = xDays(), k = xSel && XV.days[xSel] ? xSel : ds[ds.length - 1], useM = fee === "mnq";
-    var head = '<div class="phead"><div><div class="ctitle">Exit-varianter</div><div class="muted">NB v1.1 · tabsdage · ' + (useM ? 'MNQ-gebyrer (sim.)' : 'Liquid-gebyrer') + '</div></div>';
+    var head = '<div class="phead"><div><div class="ctitle">Exit-varianter</div><div class="muted">NB v1.1 · ' + (useM ? 'MNQ-gebyrer (sim.)' : 'Liquid-gebyrer') + '</div></div>';
     if (!k) return '<div class="panel cal xbox">' + head + '</div><div class="xempty muted">Ingen tabsdage for NB endnu – her vises, hvad exit-reglerne A–I ville have givet på dage med tab.</div></div>';
     var i = ds.indexOf(k), day = XV.days[k], V = day.variants;
     head += '<div class="mnav"><button class="xprev" aria-label="Forrige tabsdag"' + (i <= 0 ? ' disabled' : '') + '>‹</button><span class="xdate">' + shortD(pd(k)) + '</span><button class="xnext" aria-label="Næste tabsdag"' + (i >= ds.length - 1 ? ' disabled' : '') + '>›</button></div></div>';
