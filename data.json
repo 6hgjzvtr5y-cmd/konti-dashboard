@@ -1,5 +1,5 @@
 {
- "updated": "21. oktober 2026 kl. 09:16",
+ "updated": "21. oktober 2026 kl. 22:35",
  "today": "2026-10-21",
  "accounts": [
   {
@@ -13,17 +13,23 @@
    "name": "Liquid",
    "start": 10000.0,
    "equity": {
-    "2026-10-21": 10000.0
+    "2026-10-21": 9678.94
    }
   }
  ],
  "nb_stats": {
-  "trades": 0,
+  "trades": 3,
   "wins": 0,
-  "losses": 0,
+  "losses": 3,
   "avg_win": null,
-  "avg_loss": null,
-  "net": 0
+  "avg_loss": -106.93333333333334,
+  "net": -320.8
  },
- "tv_stats": null
+ "tv_stats": null,
+ "nb_stats_mnq": null,
+ "liquid_fee_adj": null,
+ "mnq": {
+  "bp": 1.0,
+  "est_bp": 0.4
+ }
 }
