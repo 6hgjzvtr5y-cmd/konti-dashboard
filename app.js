@@ -88,7 +88,9 @@
     var w = Math.max(box.clientWidth, 200), h = box.clientHeight || 230;
     var pts = a.dates.map(function (k) { return {d: pd(k), k: k, v: a.eq[k]}; });
     if (!pts.length) { box.innerHTML = '<div class="muted" style="padding:80px 0;text-align:center">Ingen data endnu</div>'; return; }
-    var vals = pts.map(function (p) { return p.v; }).concat([a.start]);
+    var fd = idx === LIQ ? fDiffs(a) : null;   // F-skygge (kun Liquid): equity + kumuleret (F − A)
+    if (fd) pts.forEach(function (p) { p.f = p.v + fd[p.k]; });
+    var vals = pts.map(function (p) { return p.v; }).concat([a.start]).concat(fd ? pts.map(function (p) { return p.f; }) : []);
     var rg = niceRange(Math.min.apply(null, vals), Math.max.apply(null, vals), a.start);
     var L = 62, Rm = 8, T = 10, B = 26, pw = w - L - Rm, ph = h - T - B;
     var y = function (v) { return T + (rg.hi - v) / (rg.hi - rg.lo) * ph; };
@@ -112,6 +114,13 @@
       '<line x1="' + L + '" x2="' + (L + pw) + '" y1="' + sy.toFixed(1) + '" y2="' + sy.toFixed(1) + '" stroke="#5B6675" stroke-dasharray="4 4"/>' +
       '<text x="' + (L + pw - 4) + '" y="' + (sy - 6).toFixed(1) + '" text-anchor="end" class="ax">Start</text>' +
       '<polyline points="' + line + '" fill="none" stroke="' + col + '" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>';
+    if (fd) {
+      var fxy = pts.length === 1 ? [[L, y(pts[0].f)], [L + pw, y(pts[0].f)]] : pts.map(function (p, q) { return [xy[q][0], y(p.f)]; });
+      s += '<polyline points="' + fxy.map(function (p) { return p[0].toFixed(1) + "," + p[1].toFixed(1); }).join(" ") + '" fill="none" stroke="#C9D3DF" stroke-opacity=".85" stroke-width="1.8" stroke-dasharray="6 4" stroke-linejoin="round"/>' +
+        '<circle cx="' + fxy[fxy.length - 1][0].toFixed(1) + '" cy="' + fxy[fxy.length - 1][1].toFixed(1) + '" r="3.5" fill="#C9D3DF" stroke="#111821" stroke-width="1.5"/>' +
+        '<g class="flg" transform="translate(' + (L + 8) + ',' + (T + 12) + ')"><line x1="0" x2="16" y1="-4" y2="-4" stroke="' + col + '" stroke-width="2.4"/><text x="21" y="0" class="ax">A (faktisk)</text>' +
+        '<line x1="92" x2="108" y1="-4" y2="-4" stroke="#C9D3DF" stroke-width="1.8" stroke-dasharray="5 3"/><text x="113" y="0" class="ax">F (skygge)</text></g>';
+    }
     // x-labels
     var xl = pts.length === 1 ? [[L, shortD(pts[0].d), "start"], [L + pw, shortD(pts[0].d), "end"]]
       : [0, Math.floor(pts.length / 2), pts.length - 1].filter(function (v, i, arr) { return arr.indexOf(v) === i; })
@@ -134,7 +143,8 @@
       var dp = daily(a, P.k), tot = P.v - a.start;
       showTip('<b>' + esc(a.label) + '</b> · <span class="m">' + longD(P.d) + '</span><br>Equity: <b>' + money(P.v) + '</b><br>' +
         'Siden start: <span class="' + tone(tot) + '">' + money(tot, 2, true) + ' (' + pct(tot / a.start * 100, true) + ')</span><br>' +
-        'Dagens P&amp;L: <span class="' + tone(dp) + '">' + money(dp, 2, true) + '</span>', ev.clientX, ev.clientY);
+        'Dagens P&amp;L: <span class="' + tone(dp) + '">' + money(dp, 2, true) + '</span>' +
+        (fd ? '<br>F (skygge): <b>' + money(P.f) + '</b> · <span class="' + tone(P.f - P.v) + '">' + money(P.f - P.v, 2, true) + ' vs. A</span>' : ''), ev.clientX, ev.clientY);
     }
     function leave() { hx.setAttribute("visibility", "hidden"); hp.setAttribute("visibility", "hidden"); hideTip(); }
     hov.addEventListener("mousemove", move); hov.addEventListener("mouseleave", leave);
@@ -298,6 +308,27 @@
   }
 
 
+  // ---------- F-skygge (NB v1.1 variant F, f_skygge.json) ----------
+  var FS = null;
+  function fDays() { return FS && FS.days ? Object.keys(FS.days).sort() : []; }
+  function fDiffAt(k) {   // kumuleret F − A til og med dag k for valgt gebyr-model
+    var ds = fDays(), d = 0, f = fee === "mnq" ? "mnq" : "liquid";
+    ds.forEach(function (x) { if (x <= k && FS.days[x].diff) d = +FS.days[x].diff[f]; });
+    return d;
+  }
+  function fDiffs(a) {
+    if (!fDays().length) return null;
+    var o = {}; a.dates.forEach(function (k) { o[k] = fDiffAt(k); }); return o;
+  }
+  function fLine() {
+    var ds = fDays(); if (!ds.length || LIQ < 0) return "";
+    var a = accs[LIQ], dz = fDiffAt("9999-12-31"), fx = a.cur + dz, f = fee === "mnq" ? "mnq" : "liquid";
+    var tipH = '<b>F-skygge</b> · NB v1.1 variant F (exit først efter 2 fejlede halvtimes-tjek i træk)<br>' +
+      ds.map(function (k) { var r = FS.days[k]; return shortD(pd(k)) + ': F <span class="' + tone(r.f[f]) + '">' + money(r.f[f], 2, true) + '</span> · A <span class="' + tone(r.a_net[f]) + '">' + money(r.a_net[f], 2, true) + '</span>'; }).join('<br>') +
+      '<br><span class="m">Samme indgange, stop og størrelse som NB. Replay – ingen rigtige ordrer. ' + (f === "mnq" ? 'MNQ-gebyrer (sim.).' : 'Liquid-gebyrer.') + '</span>';
+    return '<div class="fsk" data-tip="' + esc(tipH) + '"><i></i><span>F-skygge: <b>' + money(fx) + '</b> (A: ' + money(a.cur) + '), forskel <b class="' + tone(dz) + '">' + money(dz, 2, true) + '</b>, ' + ds.length + ' dag' + (ds.length === 1 ? '' : 'e') + '</span></div>';
+  }
+
   // ---------- exit-varianter (NB tabsdage, egen boks under Liquid-kolonnen) ----------
   var XV = null, xSel = null, XORD = "ABCDEFGHI";
   var XLAB = {A: "max(UB, VWAP)", B: "Kun VWAP", C: "Kun UB", D: "min(UB, VWAP)", E: "Kun stop + luk", F: "2 tjek i træk", G: "Hele timer", H: "Modsat grænse", I: "Spring 1. tjek"};
@@ -305,7 +336,7 @@
   function exitBox() {
     var ds = xDays(), k = xSel && XV.days[xSel] ? xSel : ds[ds.length - 1], useM = fee === "mnq";
     var head = '<div class="phead"><div><div class="ctitle">Exit-varianter</div><div class="muted">NB v1.1 · ' + (useM ? 'MNQ-gebyrer (sim.)' : 'Liquid-gebyrer') + '</div></div>';
-    if (!k) return '<div class="panel cal xbox">' + head + '</div><div class="xempty muted">Ingen tabsdage for NB endnu – her vises, hvad exit-reglerne A–I ville have givet på dage med tab.</div></div>';
+    if (!k) return '<div class="panel cal xbox">' + head + '</div><div class="xempty muted">Ingen tabsdage for NB endnu – her vises, hvad exit-reglerne A–I ville have givet på dage med tab.</div>' + fLine() + '</div>';
     var i = ds.indexOf(k), day = XV.days[k], V = day.variants;
     head += '<div class="mnav"><button class="xprev" aria-label="Forrige tabsdag"' + (i <= 0 ? ' disabled' : '') + '>‹</button><span class="xdate">' + shortD(pd(k)) + '</span><button class="xnext" aria-label="Næste tabsdag"' + (i >= ds.length - 1 ? ' disabled' : '') + '>›</button></div></div>';
     var vals = XORD.split("").map(function (v) { var r = V[v] && (useM ? V[v].mnq : V[v].liquid); return r ? +r.net : 0; });
@@ -321,7 +352,7 @@
     }).join("");
     var best = XORD.split("").reduce(function (b, v, j) { return vals[j] > vals[b] ? j : b; }, 0);
     var foot = best === 0 ? 'Nuværende regel (A) var bedst denne dag.' : 'Bedst: ' + XORD[best] + ' (' + money(vals[best] - a0, 0, true) + ' vs. A). Én dag siger ikke meget – se backtestet.';
-    return '<div class="panel cal xbox">' + head + '<div class="xlist">' + rows + '</div><div class="xfoot muted">' + foot + ' Replay af dagens kurs' + (day.mode === "live" ? ' (live-tjek fra NB Signal)' : '') + '.</div></div>';
+    return '<div class="panel cal xbox">' + head + '<div class="xlist">' + rows + '</div><div class="xfoot muted">' + foot + ' Replay af dagens kurs' + (day.mode === "live" ? ' (live-tjek fra NB Signal)' : '') + '.</div>' + fLine() + '</div>';
   }
   function renderExit() {
     var row = $("exitRow");
@@ -384,6 +415,9 @@
       return fetch("exit_varianter.json?t=" + Date.now(), {cache: "no-store"})
         .then(function (r) { return r.ok ? r.json() : null; })
         .then(function (x) { XV = x && x.days ? x : null; }, function () { XV = null; })
+        .then(function () { return fetch("f_skygge.json?t=" + Date.now(), {cache: "no-store"}); })
+        .then(function (r) { return r && r.ok ? r.json() : null; }, function () { return null; })
+        .then(function (x) { FS = x && x.days ? x : null; }, function () { FS = null; })
         .then(function () { return data; });
     })
     .then(function (data) {
