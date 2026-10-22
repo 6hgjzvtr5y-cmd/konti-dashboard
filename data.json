@@ -1,51 +1,54 @@
 {
- "updated": "21. oktober 2026 kl. 22:35",
- "today": "2026-10-21",
+ "updated": "22. oktober 2026 kl. 22:41",
+ "today": "2026-10-22",
  "accounts": [
   {
    "name": "TradingView",
    "start": 100000.0,
    "equity": {
-    "2026-10-21": 100000.0
+    "2026-10-21": 100000.0,
+    "2026-10-22": 100000.0
    }
   },
   {
    "name": "Liquid",
    "start": 10000.0,
    "equity": {
-    "2026-10-21": 9678.94
+    "2026-10-21": 9678.94,
+    "2026-10-22": 9775.67
    }
   }
  ],
  "nb_stats": {
-  "trades": 3,
-  "wins": 0,
+  "trades": 4,
+  "wins": 1,
   "losses": 3,
-  "avg_win": null,
+  "avg_win": 96.3,
   "avg_loss": -106.93333333333334,
-  "net": -320.8,
-  "gross": -95.2,
-  "fees": 225.6
+  "net": -224.5,
+  "gross": 45.06,
+  "fees": 269.56
  },
  "tv_stats": null,
  "nb_stats_mnq": {
-  "trades": 3,
-  "wins": 0,
+  "trades": 4,
+  "wins": 1,
   "losses": 3,
-  "avg_win": null,
+  "avg_win": 137.9389,
   "avg_loss": -35.6929,
-  "net": -107.0787,
-  "gross": -95.2,
-  "fees": 11.8787
+  "net": 30.860199999999985,
+  "gross": 45.05999999999999,
+  "fees": 14.1998
  },
  "liquid_fee_adj": {
-  "2026-10-21": 213.7213
+  "2026-10-21": 213.7213,
+  "2026-10-22": 41.6389
  },
  "mnq": {
   "bp": 1.0,
   "est_bp": 0.4,
-  "liquid_fees": 225.6,
-  "mnq_fees": 11.88,
-  "gross": -95.2
+  "liquid_fees": 269.56,
+  "mnq_fees": 14.2,
+  "gross": 45.06
  }
 }
