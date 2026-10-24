@@ -367,11 +367,59 @@
     if (n) n.onclick = function () { if (i < ds.length - 1) { xSel = ds[i + 1]; renderExit(); } };
   }
 
+
+  // ---------- Session Momentum-skygge (sm_skygge.json fra sm_skygge_add.py) ----------
+  var SM = null;
+  function renderSM() {
+    var row = $("smRow"), lab = $("smLabel");
+    var ds = SM && SM.days ? Object.keys(SM.days).sort() : [];
+    if (!SM) { row.hidden = true; lab.hidden = true; row.innerHTML = ""; return; }
+    row.hidden = false; lab.hidden = false;
+    var tr = ds.filter(function (k) { return SM.days[k].status === "handel"; }), eq = {};
+    tr.forEach(function (k) { eq[k] = +SM.days[k].equity; });
+    var a = derive({name: "Session Momentum", label: SM.label || "Session Momentum (skygge, 1,5×ATR)", start: +SM.start, equity: eq}), t = tone(a.pnl);
+    var last = tr.length ? SM.days[tr[tr.length - 1]] : null, lk = tr.length ? tr[tr.length - 1] : null;
+    var bp = String(+SM.mnq_bp).replace(".", ",");
+    var left = '<div class="panel acct smacct"><div class="phead"><div class="pname"><span class="dot ' + t + '"></span>Session Momentum (skygge, 1,5×ATR)</div><span class="badge">SKYGGE</span></div>' +
+      '<div class="big">' + money(a.cur) + '</div><div class="rowsb"><div class="muted">Simuleret · start ' + money(a.start, 0) + ' · ' + shortD(pd(SM.first_day)) + '</div>' +
+      '<div class="pill ' + t + '">' + arrow(a.pnl) + ' ' + money(a.pnl, 2, true) + ' · ' + pct(a.pnlPct, true) + '</div></div>' +
+      '<div class="chart" id="smChart"></div><div class="mini">' +
+      '<div><div class="mv">' + money(a.peak) + '</div><div class="ml">Højeste equity</div></div>' +
+      '<div><div class="mv ' + (a.mdd < 0 ? "neg" : "") + '">' + (a.mdd < 0 ? pct(a.mdd, true) : "0,00 %") + '</div><div class="ml">Max drawdown</div></div>' +
+      '<div><div class="mv">' + (last ? shortD(pd(lk)) + ' ' + (last.side === "LONG" ? "L" : "S") : "–") + '</div><div class="ml">Sidste handel</div></div></div></div>';
+    var n = +SM.trades, w = +SM.wins, l = +SM.losses, wr = n ? w / n * 100 : null, net = +SM.net;
+    var Rs = tr.map(function (k) { return +SM.days[k].R; }), avgR = Rs.length ? Rs.reduce(function (x, y) { return x + y; }, 0) / Rs.length : null;
+    var fees = tr.reduce(function (x, k) { return x + (+SM.days[k].fee || 0); }, 0), gross = net + fees;
+    var bar = function (p) { return p === null ? '<div class="bar"><span class="bn"></span></div>' : '<div class="bar"><span class="bg" style="width:' + p + '%"></span><span class="br" style="width:' + (100 - p) + '%"></span></div>'; };
+    var list = tr.slice(-12).map(function (k) {
+      var r = SM.days[k];
+      return shortD(pd(k)) + ' ' + r.side + ' ' + num(r.entry, 2) + ' → ' + num(r.exit, 2) + ' ' + (r.exit_type === "STOP" ? "stop " + r.exit_dk : "luk 22:00") +
+        ' · <span class="' + tone(r.pnl) + '">' + money(+r.pnl, 2, true) + ' (' + (r.R > 0 ? "+" : "") + String(r.R).replace(".", ",") + 'R)</span>';
+    }).join('<br>');
+    var skipped = ds.filter(function (k) { return SM.days[k].status !== "handel"; });
+    var tipH = '<b>Session Momentum (skygge)</b> · <span class="m">tider i dansk tid</span><br>' + (list || 'Ingen handler endnu') +
+      (skipped.length ? '<br><span class="m">Uden handel: ' + skipped.map(function (k) { return shortD(pd(k)) + ' (' + esc(SM.days[k].note || SM.days[k].status) + ')'; }).join(', ') + '</span>' : '') +
+      '<br><span class="m">Lys 15:30–15:35 vs EMA12 → indgang 15:35 · stop 1,5×ATR(14) · intet mål · luk 22:00<br>1 % risiko, max 4× · MNQ ' + bp + ' bp RT (i begge gebyr-visninger) · ingen ordrer</span>';
+    var tiles = [
+      [String(n), "Handler", '<div class="sub">' + w + ' vundet · ' + l + ' tabt</div>', ""],
+      [wr === null ? "–" : pct(wr), "Winrate", bar(wr), ""],
+      [avgR === null ? "–" : (avgR > 0 ? "+" : avgR < 0 ? "−" : "") + Math.abs(avgR).toFixed(2).replace(".", ",") + "R", "Gns. R pr. handel", '<div class="sub">Backtest 2020–26: 26 % vindere, PF 1,19</div>', avgR === null ? "" : tone(avgR) === "flat" ? "" : tone(avgR)],
+      [money(net, 2, true), "Netto P&amp;L (MNQ " + bp + " bp)", '<div class="sub">Brutto ' + money(gross, 2, true) + ' · gebyr ' + money(-fees, 2, true) + '</div>', tone(net) === "flat" ? "" : tone(net)]
+    ];
+    var right = '<div class="statcol smstat" data-tip="' + esc(tipH) + '"><div class="tiles2">' + tiles.map(function (x) {
+      return '<div class="panel tile"><div class="tv ' + x[3] + '">' + x[0] + '</div><div class="tl">' + x[1] + '</div>' + x[2] + '</div>'; }).join("") + '</div>' +
+      '<div class="smnote muted">' + (last ? 'Sidst: ' + longD(pd(lk)) + ' · ' + last.side + ' ' + num(last.entry, 2) + ' (15:35) → ' + (last.exit_type === "STOP" ? 'stop ' + num(last.exit, 2) + ' kl. ' + last.exit_dk : 'luk ' + num(last.exit, 2) + ' kl. 22:00') + ' · ' : '') + 'Opdateret ' + esc(SM.updated || "–") + ' (dansk tid)</div></div>';
+    row.innerHTML = left + right;
+    drawChart(document.getElementById("smChart"), a, 9);
+    var st = row.querySelector(".smstat");
+    if (st) st.addEventListener("touchstart", function (e) { var q = e.touches[0]; showTip(st.dataset.tip, q.clientX, q.clientY); clearTimeout(window.__kt); window.__kt = setTimeout(hideTip, 4000); }, {passive: true});
+  }
   renderAccounts = safe("konto-paneler", renderAccounts);
+  renderSM = safe("session-momentum", renderSM);
   renderExit = safe("exit-varianter", renderExit);
   renderTiles = safe("handelsstatistik", renderTiles);
   renderCal = safe("kalender", renderCal);
-  function renderAll() { setFee(fee, false); renderAccounts(); renderTiles(); renderCal(); renderExit(); }
+  function renderAll() { setFee(fee, false); renderAccounts(); renderTiles(); renderCal(); renderExit(); renderSM(); }
 
   function init(data) {
     D = data; accsLiq = data.accounts.map(derive); accs = accsLiq; today = pd(data.today);
@@ -393,7 +441,7 @@
       var c = e.target.closest && e.target.closest(".cell.hasx"); if (!c) return;
       xSel = c.dataset.x; renderExit(); var r = document.getElementById("exitRow"); if (r && r.scrollIntoView) r.scrollIntoView({behavior: "smooth", block: "nearest"});
     });
-    var rt; window.addEventListener("resize", function () { clearTimeout(rt); rt = setTimeout(renderAccounts, 120); });
+    var rt; window.addEventListener("resize", function () { clearTimeout(rt); rt = setTimeout(function () { renderAccounts(); renderSM(); }, 120); });
     // valgfri start-parametre: ?konto=0|1|both&maaned=YYYY-MM
     var q = new URLSearchParams(location.search);
     if (q.get("konto")) { var b = $("acctToggle").querySelector('[data-v="' + q.get("konto") + '"]'); if (b) b.click(); }
@@ -418,6 +466,9 @@
         .then(function () { return fetch("f_skygge.json?t=" + Date.now(), {cache: "no-store"}); })
         .then(function (r) { return r && r.ok ? r.json() : null; }, function () { return null; })
         .then(function (x) { FS = x && x.days ? x : null; }, function () { FS = null; })
+        .then(function () { return fetch("sm_skygge.json?t=" + Date.now(), {cache: "no-store"}); })
+        .then(function (r) { return r && r.ok ? r.json() : null; }, function () { return null; })
+        .then(function (x) { SM = x && x.days ? x : null; }, function () { SM = null; })
         .then(function () { return data; });
     })
     .then(function (data) {

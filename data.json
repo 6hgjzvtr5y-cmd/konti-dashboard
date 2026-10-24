@@ -54,5 +54,16 @@
   "mnq_fees": 19.96,
   "gross": 1.2
  },
- "warnings": []
+ "warnings": [],
+ "sm_stats": {
+  "label": "Session Momentum (skygge, 1,5×ATR)",
+  "trades": 3,
+  "wins": 0,
+  "losses": 3,
+  "net": -294.94,
+  "equity": 9705.06,
+  "mnq_bp": 1.0,
+  "first_day": "2026-10-21",
+  "updated": "2026-10-24 18:53"
+ }
 }
