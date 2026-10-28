@@ -147,7 +147,7 @@
  "losses": 6,
  "net": -503.67,
  "equity": 9496.33,
- "updated": "2026-10-28 21:35",
+ "updated": "2026-10-28 23:09",
  "label": "Session Momentum (skygge, 1,5×ATR)",
  "note": "Skygge – kun beregning, ingen ordrer. Session Momentum: første 5-min lys 15:30–15:35 dansk tid vs EMA12 → long/short ved 15:35, stop 1,5×ATR(14), intet mål/trail, exit 22:00 dansk tid. 1 % risiko, max 4×, start $10.000 (2026-10-21). Data: Dukascopy NAS100 (samme som backtest). Gebyr MNQ 1 bp RT i begge gebyr-visninger (aldrig Liquid)."
 }
